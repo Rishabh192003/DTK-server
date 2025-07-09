@@ -1,0 +1,65 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+.eggs/
+*.egg
+*.env
+.venv/
+dkt/
+.DS_Store
+
+# VSCode/IDE
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Test/coverage
+coverage/
+*.cover
+*.py,cover
+.hypothesis/
+
+# Misc
+.env
+.env.*
+codesnap.js
+chatbot_logic copy.py
+delivery_watcher copy.py
+duplicate_checker copy.py
+insert_sample_data1.py
+insert_sample_data.py
+insert_sample_data copy.py
+api copy.py
+~$*
+*.swp
+*.bak
+*.tmp
+
+
+# Ignore backup files
+*~
+
+# Ignore Mac system files
