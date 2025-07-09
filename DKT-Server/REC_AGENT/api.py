@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from duplicate_checker import DuplicateChecker 
-from chatbot_logic import donor_to_partner_handoff_check, handle_beneficiary_delivery_check, send_chatbot_message
+from REC_AGENT.duplicate_checker import DuplicateChecker 
+from REC_AGENT.chatbot_logic import donor_to_partner_handoff_check, handle_beneficiary_delivery_check, send_chatbot_message
 from bson import ObjectId
 from pymongo import MongoClient
 import os
@@ -46,7 +46,7 @@ def check_duplicates(req: AssetRequest):
 def chatbot_check_duplicates(req: ChatbotRequest):
     try:
         # Import here to avoid circular imports
-        from chatbot_logic import handle_duplicate_check
+        from REC_AGENT.chatbot_logic import handle_duplicate_check
         
         # Call the chatbot logic
         handle_duplicate_check(req.asset_id, req.doner_id)

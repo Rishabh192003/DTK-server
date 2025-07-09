@@ -1,4 +1,4 @@
-from duplicate_checker import DuplicateChecker
+from REC_AGENT.duplicate_checker import DuplicateChecker
 
 # Use the asset_id from your sample data
 asset_id = "700000000000000000000007"

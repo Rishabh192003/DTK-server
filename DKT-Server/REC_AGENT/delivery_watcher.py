@@ -3,7 +3,7 @@ import pymongo
 from bson import ObjectId
 from dotenv import load_dotenv
 import os
-from chatbot_logic import handle_commitment_vs_delivery_check
+from REC_AGENT.chatbot_logic import handle_commitment_vs_delivery_check
 
 # Load environment variables from .env file
 load_dotenv()

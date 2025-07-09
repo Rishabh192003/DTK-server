@@ -1,6 +1,6 @@
 import requests
 import os
-from gemini_helper import ask_gemini
+from REC_AGENT.gemini_helper import ask_gemini
 
 def handle_duplicate_check(asset_id, doner_id):
     """

@@ -8,7 +8,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from chatbot_logic import handle_commitment_vs_delivery_check, send_chatbot_message, get_user_response
+from REC_AGENT.chatbot_logic import handle_commitment_vs_delivery_check, send_chatbot_message, get_user_response
 
 def test_commitment_vs_delivery_check():
     """

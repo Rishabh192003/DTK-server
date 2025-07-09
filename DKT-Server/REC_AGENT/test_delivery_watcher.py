@@ -1,5 +1,5 @@
 import sys
-from chatbot_logic import donor_to_partner_handoff_check
+from REC_AGENT.chatbot_logic import donor_to_partner_handoff_check
 
 # Simulate test data for a delivery
 mock_delivery = {

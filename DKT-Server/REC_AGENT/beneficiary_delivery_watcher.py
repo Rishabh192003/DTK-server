@@ -2,7 +2,7 @@ import time
 import pymongo
 from dotenv import load_dotenv
 import os
-from chatbot_logic import handle_beneficiary_delivery_check, send_chatbot_message
+from REC_AGENT.chatbot_logic import handle_beneficiary_delivery_check, send_chatbot_message
 
 # Load environment variables from .env file
 load_dotenv()
