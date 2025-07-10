@@ -20,61 +20,50 @@ class DuplicateChecker:
     def check_and_handle_duplicates(self, asset_id, auto_remove=False):
         record = self.csv_collection.find_one({"_id": ObjectId(asset_id)})
 
-        if not record or "csv_data" not in record:
+        if not record or "products" not in record:
             return {
-                "message": "CSV data not found for the given asset ID.",
+                "message": "Products array not found for the given asset ID.",
                 "duplicates": [],
                 "status": "not_found"
             }
 
-        df = pd.DataFrame(record["csv_data"])
-        dup_rows = []
+        products = record["products"]
+        # Find duplicates in the products array
+        seen = set()
+        duplicates = []
+        for idx, prod in enumerate(products):
+            if prod in seen:
+                duplicates.append(idx)
+            else:
+                seen.add(prod)
 
-        if "model" in df.columns:
-            dup_mask = df.duplicated(subset=["model"], keep=False)
-            if dup_mask.any():
-                dup_rows = df[dup_mask].index.tolist()
-                if auto_remove:
-                    df_cleaned = df.drop_duplicates(subset=["model"], keep="first")
-                    self.csv_collection.update_one(
-                        {"_id": ObjectId(asset_id)},
-                        {"$set": {"csv_data": df_cleaned.to_dict(orient="records")}}
-                    )
-                    return {
-                        "message": "Duplicates auto-removed by model number.",
-                        "duplicates": dup_rows,
-                        "status": "cleaned"
-                    }
-                else:
-                    return {
-                        "message": "Duplicate model numbers found.",
-                        "duplicates": dup_rows,
-                        "status": "flagged"
-                    }
+        if duplicates:
+            if auto_remove:
+                # Remove duplicates, keep first occurrence
+                new_products = []
+                seen = set()
+                for prod in products:
+                    if prod not in seen:
+                        new_products.append(prod)
+                        seen.add(prod)
+                self.csv_collection.update_one(
+                    {"_id": ObjectId(asset_id)},
+                    {"$set": {"products": new_products}}
+                )
+                return {
+                    "message": "Duplicates auto-removed from products array.",
+                    "duplicates": duplicates,
+                    "status": "cleaned"
+                }
+            else:
+                return {
+                    "message": "Duplicate product IDs found in products array.",
+                    "duplicates": duplicates,
+                    "status": "flagged"
+                }
         else:
-            dup_mask = df.duplicated(keep=False)
-            if dup_mask.any():
-                dup_rows = df[dup_mask].index.tolist()
-                if auto_remove:
-                    df_cleaned = df.drop_duplicates(keep="first")
-                    self.csv_collection.update_one(
-                        {"_id": ObjectId(asset_id)},
-                        {"$set": {"csv_data": df_cleaned.to_dict(orient="records")}}
-                    )
-                    return {
-                        "message": "Duplicates auto-removed by full row check.",
-                        "duplicates": dup_rows,
-                        "status": "cleaned"
-                    }
-                else:
-                    return {
-                        "message": "Duplicate rows found by fallback comparison.",
-                        "duplicates": dup_rows,
-                        "status": "flagged"
-                    }
-
-        return {
-            "message": "No duplicates found.",
-            "duplicates": [],
-            "status": "clean"
-        }
+            return {
+                "message": "No duplicates found in products array.",
+                "duplicates": [],
+                "status": "clean"
+            }

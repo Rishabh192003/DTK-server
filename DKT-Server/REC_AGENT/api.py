@@ -6,6 +6,12 @@ from bson import ObjectId
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
+from fastapi import APIRouter
+from REC_AGENT.partner_to_beneficiary_reschedule import (
+    chatbot_check_delivery_status,
+    reschedule_beneficiary_request,
+    db
+)
 
 app = FastAPI()
 checker = DuplicateChecker()  # You can pass custom DB URI if needed
@@ -31,6 +37,9 @@ class HandoffCheckRequest(BaseModel):
 class BeneficiaryDeliveryCheckRequest(BaseModel):
     request_id: str
 
+class RescheduleRequest(BaseModel):
+    shipment_id: int
+    
 @app.post("/api/reconciliation/check-duplicates")
 def check_duplicates(req: AssetRequest):
     try:
@@ -96,6 +105,36 @@ def beneficiary_delivery_check_api(req: BeneficiaryDeliveryCheckRequest):
             return {"status": "verified", "committed": committed, "received": received}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+@app.post("/api/agent/partner-to-beneficiary-reschedule")
+def partner_to_beneficiary_reschedule(req: RescheduleRequest):
+    # 1. Find the delivery by shipment_id
+    delivery = db.assetsdeleveries.find_one({"shippingDetails.shipment_id": req.shipment_id})
+    if not delivery:
+        raise HTTPException(status_code=404, detail="Could not find delivery with the given shipment_id.")
+
+    # 2. Check delivery status
+    status_message = chatbot_check_delivery_status(req.shipment_id)
+    if "failed" in status_message.lower():
+        beneficiary_request_id = delivery.get("beneficeryRequestId")
+        partner_id = delivery.get("partnerId")
+        new_request_id = reschedule_beneficiary_request(beneficiary_request_id, partner_id)
+        if new_request_id:
+            return {
+                "status": "rescheduled",
+                "message": "Delivery failed and request has been rescheduled.",
+                "new_request_id": str(new_request_id)
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to reschedule. Please check the IDs.")
+    else:
+        return {
+            "status": "ok",
+            "message": "Delivery is not failed. No rescheduling needed.",
+            "current_status": status_message
+        }
 
 if __name__ == "__main__":
     import uvicorn

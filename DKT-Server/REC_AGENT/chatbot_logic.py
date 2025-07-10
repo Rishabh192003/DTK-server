@@ -1,10 +1,14 @@
 import requests
 import os
 from REC_AGENT.gemini_helper import ask_gemini
+from REC_AGENT.partner_to_beneficiary_reschedule import (
+    chatbot_check_delivery_status,
+    reschedule_beneficiary_request
+)
 
 def handle_duplicate_check(asset_id, doner_id):
     """
-    Chatbot function to handle duplicate detection after CSV upload
+    Chatbot function to handle duplicate detection after product upload
     """
     # 1. Check for duplicates using the asset_id from fullstack upload
     resp = requests.post(
@@ -18,12 +22,12 @@ def handle_duplicate_check(asset_id, doner_id):
         # Show alert to user via chatbot
         alert_message = (
             f"🚨 **Duplicate Detection Alert** 🚨\n\n"
-            f"We found duplicate entries in your uploaded CSV:\n"
-            f"• Duplicate rows: {result['duplicates']}\n"
+            f"We found duplicate product IDs in your uploaded products:\n"
+            f"• Duplicate indices: {result['duplicates']}\n"
             f"• Message: {result['message']}\n\n"
             f"**What would you like to do?**\n"
             f"1. Remove duplicates automatically\n"
-            f"2. Upload a corrected CSV file"
+            f"2. Upload a corrected product list"
         )
         
         # Send alert to user (this would be your chatbot's send_message function)
@@ -38,19 +42,19 @@ def handle_duplicate_check(asset_id, doner_id):
                 "http://localhost:8000/api/reconciliation/check-duplicates",
                 json={"asset_id": asset_id, "auto_remove": True}
             )
-            success_message = "✅ Duplicates have been automatically removed. Your CSV is now clean!"
+            success_message = "✅ Duplicates have been automatically removed. Your product list is now clean!"
             send_chatbot_message(success_message)
         else:
             # Ask user to re-upload
-            reupload_message = "📁 Please upload a corrected CSV file without duplicates."
+            reupload_message = "📁 Please upload a corrected product list without duplicates."
             send_chatbot_message(reupload_message)
             
     elif result["status"] == "clean":
-        success_message = "✅ No duplicates found! Your CSV has been successfully uploaded."
+        success_message = "✅ No duplicates found! Your product list has been successfully uploaded."
         send_chatbot_message(success_message)
         
     elif result["status"] == "cleaned":
-        success_message = "✅ Duplicates were automatically removed. Your CSV is now clean!"
+        success_message = "✅ Duplicates were automatically removed. Your product list is now clean!"
         send_chatbot_message(success_message)
         
     else:
@@ -223,6 +227,72 @@ def handle_beneficiary_delivery_check(beneficiary_name, request_id, committed_qu
 
     return received_quantity
 
+# def handle_partner_to_beneficiary_reschedule():
+#     """
+#     Chatbot function for interactive partner-to-beneficiary delivery rescheduling.
+#     1. Asks for shipment ID
+#     2. Checks delivery status
+#     3. If failed, notifies and asks admin if they want to reschedule
+#     4. If yes, reschedules the request
+#     """
+#     send_chatbot_message("Please provide the Shiprocket shipment ID to check delivery status:")
+#     shipment_id = get_user_response()
+#     status_message = chatbot_check_delivery_status(shipment_id)
+#     send_chatbot_message(status_message)
+#     if "failed" in status_message.lower():
+#         send_chatbot_message("Would you like to reschedule this delivery request to the same partner? (yes/no)")
+#         admin_response = get_user_response()
+#         if admin_response.strip().lower() in ["yes", "y"]:
+#             # In a real system, you would look up the beneficiary_request_id and partner_id from the DB
+#             send_chatbot_message("Please provide the Beneficiary Request ID:")
+#             beneficiary_request_id = get_user_response()
+#             send_chatbot_message("Please provide the Partner ID:")
+#             partner_id = get_user_response()
+#             new_request_id = reschedule_beneficiary_request(beneficiary_request_id, partner_id)
+#             if new_request_id:
+#                 send_chatbot_message(f"✅ Rescheduled! New Beneficiary Request ID: {new_request_id}")
+#             else:
+#                 send_chatbot_message("❌ Failed to reschedule. Please check the provided IDs.")
+#         else:
+#             send_chatbot_message("Reschedule cancelled.")
+
+def handle_partner_to_beneficiary_reschedule():
+    """
+    Chatbot function for interactive partner-to-beneficiary delivery rescheduling.
+    1. Asks for shipment ID
+    2. Checks delivery status
+    3. If failed, fetches beneficiary and partner IDs automatically
+    4. Asks admin if they want to reschedule
+    5. If yes, reschedules the request
+    """
+    send_chatbot_message("Please provide the Shiprocket shipment ID to check delivery status:")
+    shipment_id = get_user_response()
+    status_message = chatbot_check_delivery_status(shipment_id)
+    send_chatbot_message(status_message)
+    if "failed" in status_message.lower():
+        # --- AUTOMATICALLY FETCH IDs ---
+        from REC_AGENT.partner_to_beneficiary_reschedule import db  # Import db connection
+        delivery = db.assetsdeleveries.find_one({"shippingDetails.shipment_id": int(shipment_id)})
+        if not delivery:
+            send_chatbot_message("❌ Could not find a delivery with that shipment ID.")
+            return
+        beneficiary_request_id = delivery.get("beneficeryRequestId")
+        partner_id = delivery.get("partnerId")
+        send_chatbot_message(
+            f"Found Beneficiary Request ID: {beneficiary_request_id}\n"
+            f"Found Partner ID: {partner_id}\n"
+            "Would you like to reschedule this delivery request to the same partner? (yes/no)"
+        )
+        admin_response = get_user_response()
+        if admin_response.strip().lower() in ["yes", "y"]:
+            new_request_id = reschedule_beneficiary_request(beneficiary_request_id, partner_id)
+            if new_request_id:
+                send_chatbot_message(f"✅ Rescheduled! New Beneficiary Request ID: {new_request_id}")
+            else:
+                send_chatbot_message("❌ Failed to reschedule. Please check the provided IDs.")
+        else:
+            send_chatbot_message("Reschedule cancelled.")
+
 # Placeholder functions for chatbot integration
 def send_chatbot_message(message, system=False):
     if system:
@@ -235,4 +305,5 @@ def get_user_response():
     response = input("Your response: ")
     return response
     # Replace with your actual chatbot response function 
+    
     

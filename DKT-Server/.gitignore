@@ -53,6 +53,9 @@ insert_sample_data1.py
 insert_sample_data.py
 insert_sample_data copy.py
 api copy.py
+sample_dup.py
+test.py
+insert_sample_data_reschedule.py
 ~$*
 *.swp
 *.bak
